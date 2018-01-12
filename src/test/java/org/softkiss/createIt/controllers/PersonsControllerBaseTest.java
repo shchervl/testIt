@@ -1,70 +1,48 @@
 package org.softkiss.createIt.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.softkiss.Application;
-import org.softkiss.createIt.PersonRepository;
 import org.softkiss.createIt.entities.Person;
+import org.softkiss.createIt.repository.PersonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
-import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.context.WebApplicationContext;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.nio.charset.Charset;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
-@SpringBootTest(classes = Application.class)
-@WebAppConfiguration
-public class PersonsControllerTest extends AbstractTestNGSpringContextTests {
-
-    @Autowired
-    private WebApplicationContext webApplicationContext;
+public class PersonsControllerBaseTest extends BaseTest {
 
     @Autowired
     private PersonRepository personRepository;
 
-    private MockMvc mockMvc;
     private String location;
     private Person person;
 
-    private MediaType contentType = new MediaType(MediaType.APPLICATION_JSON.getType(),
-            MediaType.APPLICATION_JSON.getSubtype(),
-            Charset.forName("utf8"));
-
-
+    @Override
     @BeforeClass
     public void beforeClass() {
+        super.beforeClass();
         person = new Person();
         person.setAge((short) 30);
         person.setDetailedDescription("detailed description");
         person.setName("Jack Nicholson");
         person.setProfession("qa");
-
         personRepository.deleteAll();
-        mockMvc = webAppContextSetup(webApplicationContext).build();
     }
 
     @Test
     public void personNotFound() throws Exception {
-        mockMvc.perform(
+        getMockMvc().perform(
                 get("/person/123354/")
-                        .contentType(contentType))
+                        .contentType(getContentType()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     public void createPerson() throws Exception {
-        location = mockMvc.perform(
+        location = getMockMvc().perform(
                 post("/people")
-                        .contentType(contentType)
+                        .contentType(getContentType())
                         .content(new ObjectMapper().writeValueAsString(person)))
                 .andExpect(status().isCreated())
                 .andReturn()
@@ -72,38 +50,47 @@ public class PersonsControllerTest extends AbstractTestNGSpringContextTests {
                 .getHeader("Location");
     }
 
+    @Test
+    public void tryToCreatePersonWithoutName() throws Exception {
+        Person invalidPerson = new Person();
+        invalidPerson.setProfession("profession");
+        invalidPerson.setAge((short) 30);
+        invalidPerson.setDetailedDescription("description");
+        getMockMvc().perform(
+                post("/people")
+                        .contentType(getContentType())
+                        .content(new ObjectMapper().writeValueAsString(invalidPerson)))
+                .andExpect(status().isPartialContent());
+    }
+
     @Test(dependsOnMethods = "createPerson")
     public void getPerson() throws Exception {
-        mockMvc.perform(
+        getMockMvc().perform(
                 get(location)
-                        .contentType(contentType))
-                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.version").value("0"))
- ;
+                        .contentType(getContentType()))
+                .andExpect(status().isOk());
     }
 
     @Test(dependsOnMethods = "getPerson")
     public void updatePerson() throws Exception {
         person.setProfession("VP");
-        mockMvc.perform(
+        getMockMvc().perform(
                 patch(location)
-                        .contentType(contentType)
+                        .contentType(getContentType())
                         .content(new ObjectMapper().writeValueAsString(person)))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(
+        getMockMvc().perform(
                 get(
-                        "/people/" + person.getId())
-                        .contentType(contentType))
-//                .andExpect(jsonPath("$.version").value("1"))
-        ;
+                        location)
+                        .contentType(getContentType()));
     }
 
     @Test(dependsOnMethods = "updatePerson")
     public void deletePerson() throws Exception {
-        mockMvc.perform(
+        getMockMvc().perform(
                 delete(location)
-                        .contentType(contentType)
+                        .contentType(getContentType())
         )
                 .andExpect(status().isNoContent());
     }

@@ -2,27 +2,29 @@ package org.softkiss.createIt.entities;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document
 public class Person {
 
     @Id
     private String id;
+
     @Version
     Long version;
-
 
     private String name;
     private short age;
     private String profession;
     private String detailedDescription;
 
-    public String getId() {
-        return id;
-    }
+//    public String getId() {
+//        return id;
+//    }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+//    public void setId(String id) {
+//        this.id = id;
+//    }
 
     public String getName() {
         return name;
